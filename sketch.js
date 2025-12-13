@@ -1,9 +1,12 @@
-// ===== 변수 선언 =====
+// ===== 변수 =====
 let sound;
 let fft;
 let amp;
 
-let colorModeIndex = 0;
+let progressBarX = 150;
+let progressBarY = 40;
+let progressBarW = 500;
+let progressBarH = 15;
 
 function preload() {
   sound = loadSound("music.mp3");
@@ -39,40 +42,43 @@ function draw() {
   fill(35);
   stroke(20);
   strokeWeight(3);
-  rect(width/2 - 170, 60, 340, 380, 25);
+  rect(width/2 - 170, 70, 340, 360, 25);
   noStroke();
 
   // -------------------------------
-  // 3개의 동일 크기 스피커 유닛
+  // LED 불빛 (Glow 효과)
   // -------------------------------
+  let ctx = drawingContext;
+  ctx.shadowBlur = 18;
+  ctx.shadowColor = sound.isPlaying() ? "rgba(0,255,80,0.9)" : "rgba(255,60,60,0.9)";
+  fill(sound.isPlaying() ? color(0, 255, 80) : color(255, 60, 60));
+  ellipse(width/2, 95, 16);  // 크기 줄임
+  ctx.shadowBlur = 0; // 이후 도형에 영향 없도록 초기화
 
+  // -------------------------------
+  // 3개의 스피커 유닛 (간격 넓힘)
+  // -------------------------------
   let baseX = width / 2;
-  let unitSize = 90 + level * 20;   // 통일된 크기
+  let unitSize = 80 + level * 20;
 
   fill(160);
-  ellipse(baseX, 140, unitSize);    // 유닛 1
-  ellipse(baseX, 240, unitSize);    // 유닛 2
-  ellipse(baseX, 340, unitSize);    // 유닛 3
+  ellipse(baseX, 160, unitSize);
+  ellipse(baseX, 260, unitSize);
+  ellipse(baseX, 360, unitSize);
 
   // -------------------------------
-  // 양옆 작은 동그라미 버튼
+  // 양옆 버튼 (장식)
   // -------------------------------
   fill(120);
-
-  // 왼쪽 버튼 5개
   for (let i = 0; i < 5; i++) {
-    ellipse(width/2 - 150, 110 + i * 65, 14);
-  }
-
-  // 오른쪽 버튼 5개
-  for (let i = 0; i < 5; i++) {
-    ellipse(width/2 + 150, 110 + i * 65, 14);
+    ellipse(width/2 - 150, 130 + i * 65, 14);
+    ellipse(width/2 + 150, 130 + i * 65, 14);
   }
 
   // -------------------------------
-  // Play – Pause – Stop 버튼
+  // 음악 재생 바 (Progress Bar)
   // -------------------------------
-  drawControlButtons();
+  drawProgressBar();
 
   // -------------------------------
   // 양옆 바 시각화
@@ -97,54 +103,59 @@ function draw() {
   endShape();
 }
 
-// -------------------------------
-// Play / Pause / Stop 버튼 그리기
-// -------------------------------
-function drawControlButtons() {
-  let bx = width/2;
-  let by = 400;
+// =======================================================
+// 재생 바 UI
+// =======================================================
+function drawProgressBar() {
+  fill(200);
+  rect(progressBarX, progressBarY, progressBarW, progressBarH, 5);
 
-  fill(220);
-  noStroke();
+  if (sound.duration() > 0) {
+    let percent = sound.currentTime() / sound.duration();
+    fill(100, 200, 255);
+    rect(progressBarX, progressBarY, progressBarW * percent, progressBarH, 5);
+  }
 
-  // PLAY 버튼 (삼각형)
-  triangle(bx - 60, by - 15, bx - 60, by + 15, bx - 35, by);
+  // 현재 시각 / 전체 길이
+  fill(255);
 
-  // PAUSE 버튼 (두 개의 직사각형)
-  rect(bx - 5, by - 15, 8, 30, 3);
-  rect(bx + 10, by - 15, 8, 30, 3);
+  let current = formatTime(sound.currentTime());
+  let total = formatTime(sound.duration());
 
-  // STOP 버튼 (정사각형)
-  rect(bx + 40, by - 15, 26, 26, 3);
+  textSize(14);
+  text(current, progressBarX - 60, progressBarY + 12);
+  text(total, progressBarX + progressBarW + 15, progressBarY + 12);
 }
 
-// -------------------------------
-// 버튼 클릭 반응
-// -------------------------------
+// =======================================================
+// 시간 표시 mm:ss
+// =======================================================
+function formatTime(sec) {
+  if (isNaN(sec)) return "00:00";
+  let m = floor(sec / 60);
+  let s = floor(sec % 60);
+  if (s < 10) s = "0" + s;
+  return m + ":" + s;
+}
+
+// =======================================================
+// 재생 바 클릭으로 위치 이동
+// =======================================================
 function mousePressed() {
-  let bx = width/2;
-  let by = 400;
-
-  // PLAY 버튼
-  if (mouseX > bx - 70 && mouseX < bx - 25 &&
-      mouseY > by - 25 && mouseY < by + 25) {
-    if (!sound.isPlaying()) sound.play();
+  // 재생 바 클릭했을 때
+  if (
+    mouseX > progressBarX &&
+    mouseX < progressBarX + progressBarW &&
+    mouseY > progressBarY - 10 &&
+    mouseY < progressBarY + progressBarH + 10
+  ) {
+    let percent = (mouseX - progressBarX) / progressBarW;
+    sound.jump(percent * sound.duration());
+    return;
   }
 
-  // PAUSE 버튼
-  if (mouseX > bx - 10 && mouseX < bx + 30 &&
-      mouseY > by - 25 && mouseY < by + 25) {
-    if (sound.isPlaying()) sound.pause();
-  }
-
-  // STOP 버튼
-  if (mouseX > bx + 35 && mouseX < bx + 80 &&
-      mouseY > by - 25 && mouseY < by + 25) {
-    sound.stop();
+  // 클릭 시 처음 시작
+  if (!sound.isPlaying()) {
+    sound.play();
   }
 }
-
-function keyPressed() {
-  colorModeIndex = (colorModeIndex + 1) % 3;
-}
-
