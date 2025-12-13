@@ -3,17 +3,20 @@ let sound;
 let fft;
 let amp;
 
-let progressBarX = 150;
-let progressBarY = 40;
+// 재생바 설정 (중앙 배치)
 let progressBarW = 500;
-let progressBarH = 15;
+let progressBarH = 10;
+
+// 버튼
+let buttonY = 80;
+let spacing = 70;
 
 function preload() {
   sound = loadSound("music.mp3");
 }
 
 function setup() {
-  createCanvas(800, 500);
+  createCanvas(900, 500);
   angleMode(DEGREES);
 
   fft = new p5.FFT();
@@ -24,9 +27,7 @@ function draw() {
   background(80, 60, 40);
   noStroke();
 
-  // -------------------------------
   // 우드 텍스처
-  // -------------------------------
   for (let i = 0; i < height; i += 5) {
     stroke(100, 80, 55, 40);
     line(0, i, width, i);
@@ -36,62 +37,33 @@ function draw() {
   let waveform = fft.waveform();
   let level = amp.getLevel();
 
-  // -------------------------------
-  // 스피커 본체
-  // -------------------------------
-  fill(35);
-  stroke(20);
-  strokeWeight(3);
-  rect(width/2 - 170, 70, 340, 360, 25);
-  noStroke();
+  // 중앙 재생바 위치 계산
+  let progressBarX = width/2 - progressBarW/2;
+  let progressBarY = 40;
 
-  // -------------------------------
-  // LED 불빛 (Glow 효과)
-  // -------------------------------
-  let ctx = drawingContext;
-  ctx.shadowBlur = 18;
-  ctx.shadowColor = sound.isPlaying() ? "rgba(0,255,80,0.9)" : "rgba(255,60,60,0.9)";
-  fill(sound.isPlaying() ? color(0, 255, 80) : color(255, 60, 60));
-  ellipse(width/2, 95, 16);  // 크기 줄임
-  ctx.shadowBlur = 0; // 이후 도형에 영향 없도록 초기화
+  // 메인 스피커 (중앙)
+  drawMainSpeaker(level);
 
-  // -------------------------------
-  // 3개의 스피커 유닛 (간격 넓힘)
-  // -------------------------------
-  let baseX = width / 2;
-  let unitSize = 80 + level * 20;
+  // 미니 스피커 두 개 (더 미니 C 사이즈)
+  drawMiniSpeaker(width/2 - 220, level);
+  drawMiniSpeaker(width/2 + 220, level);
 
-  fill(160);
-  ellipse(baseX, 160, unitSize);
-  ellipse(baseX, 260, unitSize);
-  ellipse(baseX, 360, unitSize);
+  // LED
+  drawLED();
 
-  // -------------------------------
-  // 양옆 버튼 (장식)
-  // -------------------------------
-  fill(120);
-  for (let i = 0; i < 5; i++) {
-    ellipse(width/2 - 150, 130 + i * 65, 14);
-    ellipse(width/2 + 150, 130 + i * 65, 14);
-  }
+  // 재생바
+  drawProgressBar(progressBarX, progressBarY);
 
-  // -------------------------------
-  // 음악 재생 바 (Progress Bar)
-  // -------------------------------
-  drawProgressBar();
+  // Play / Pause / Stop 버튼
+  drawControlButtons();
 
-  // -------------------------------
-  // 양옆 바 시각화
-  // -------------------------------
-  let barHeight = map(level, 0, 1, 10, 230);
+  // 양옆 레벨 바
+  let barHeight = map(level, 0, 1, 10, 200);
   fill(120, 80, 40, 180);
+  rect(80, height - barHeight - 60, 35, barHeight, 10);
+  rect(width - 115, height - barHeight - 60, 35, barHeight, 10);
 
-  rect(80, height - barHeight - 60, 40, barHeight, 10);
-  rect(width - 120, height - barHeight - 60, 40, barHeight, 10);
-
-  // -------------------------------
-  // 아래 파형
-  // -------------------------------
+  // 하단 파형
   stroke(255, 200);
   noFill();
   beginShape();
@@ -104,32 +76,85 @@ function draw() {
 }
 
 // =======================================================
-// 재생 바 UI
+// 메인 스피커
 // =======================================================
-function drawProgressBar() {
-  fill(200);
-  rect(progressBarX, progressBarY, progressBarW, progressBarH, 5);
+function drawMainSpeaker(level) {
+  fill(35);
+  stroke(20);
+  strokeWeight(3);
+  rect(width/2 - 140, 110, 280, 300, 25);
+  noStroke();
 
-  if (sound.duration() > 0) {
-    let percent = sound.currentTime() / sound.duration();
-    fill(100, 200, 255);
-    rect(progressBarX, progressBarY, progressBarW * percent, progressBarH, 5);
+  let baseX = width / 2;
+  let unitSize = 70 + level * 20;
+
+  // 스피커 유닛 3개
+  fill(170);
+  ellipse(baseX, 180, unitSize);
+  ellipse(baseX, 260, unitSize);
+  ellipse(baseX, 340, unitSize);
+
+  // 양옆 조작 버튼 5개씩
+  fill(130);
+  for (let i = 0; i < 5; i++) {
+    ellipse(width/2 - 120, 160 + i * 50, 12);
+    ellipse(width/2 + 120, 160 + i * 50, 12);
   }
-
-  // 현재 시각 / 전체 길이
-  fill(255);
-
-  let current = formatTime(sound.currentTime());
-  let total = formatTime(sound.duration());
-
-  textSize(14);
-  text(current, progressBarX - 60, progressBarY + 12);
-  text(total, progressBarX + progressBarW + 15, progressBarY + 12);
 }
 
 // =======================================================
-// 시간 표시 mm:ss
+// 미니 스피커 (C 옵션: 아주 미니)
 // =======================================================
+function drawMiniSpeaker(centerX, level) {
+  fill(45);
+  stroke(20);
+  strokeWeight(3);
+  rect(centerX - 35, 170, 70, 170, 15);
+  noStroke();
+
+  let unitSize = 35 + level * 12;
+
+  fill(170);
+  ellipse(centerX, 220, unitSize);
+  ellipse(centerX, 290, unitSize);
+}
+
+// =======================================================
+// LED
+// =======================================================
+function drawLED() {
+  let ctx = drawingContext;
+
+  ctx.shadowBlur = 12;
+  ctx.shadowColor = sound.isPlaying()
+    ? "rgba(0,255,80,0.9)"
+    : "rgba(255,60,60,0.9)";
+
+  fill(sound.isPlaying() ? color(0, 255, 80) : color(255, 60, 60));
+  ellipse(width/2, 135, 14);
+
+  ctx.shadowBlur = 0;
+}
+
+// =======================================================
+// 재생바
+// =======================================================
+function drawProgressBar(x, y) {
+  fill(200);
+  rect(x, y, progressBarW, progressBarH, 5);
+
+  if (sound.duration() > 0) {
+    let percent = sound.currentTime() / sound.duration();
+    fill(255);
+    rect(x, y, progressBarW * percent, progressBarH, 5);
+  }
+
+  fill(255);
+  textSize(14);
+  text(formatTime(sound.currentTime()), x - 60, y + 12);
+  text(formatTime(sound.duration()), x + progressBarW + 15, y + 12);
+}
+
 function formatTime(sec) {
   if (isNaN(sec)) return "00:00";
   let m = floor(sec / 60);
@@ -139,10 +164,35 @@ function formatTime(sec) {
 }
 
 // =======================================================
-// 재생 바 클릭으로 위치 이동
+// 버튼 UI
+// =======================================================
+function drawControlButtons() {
+  let playX = width/2 - spacing;
+  let stopX = width/2 + spacing;
+
+  fill(230);
+  noStroke();
+
+  // PLAY ↔ PAUSE 토글
+  if (!sound.isPlaying()) {
+    triangle(playX - 8, buttonY - 12, playX - 8, buttonY + 12, playX + 12, buttonY);
+  } else {
+    rect(playX - 10, buttonY - 12, 6, 24, 3);
+    rect(playX + 4,  buttonY - 12, 6, 24, 3);
+  }
+
+  // STOP
+  rect(stopX - 12, buttonY - 12, 24, 24, 3);
+}
+
+// =======================================================
+// 클릭 (버튼 + 재생바)
 // =======================================================
 function mousePressed() {
-  // 재생 바 클릭했을 때
+  // 재생바 클릭 이동
+  let progressBarX = width/2 - progressBarW/2;
+  let progressBarY = 40;
+
   if (
     mouseX > progressBarX &&
     mouseX < progressBarX + progressBarW &&
@@ -154,8 +204,24 @@ function mousePressed() {
     return;
   }
 
-  // 클릭 시 처음 시작
-  if (!sound.isPlaying()) {
-    sound.play();
+  checkButtons();
+}
+
+// =======================================================
+function checkButtons() {
+  let playX = width/2 - spacing;
+  let stopX = width/2 + spacing;
+
+  // PLAY ↔ PAUSE
+  if (dist(mouseX, mouseY, playX, buttonY) < 25) {
+    if (!sound.isPlaying()) sound.play();
+    else sound.pause();
+  }
+
+  // STOP (재생바도 0초로 리셋)
+  if (dist(mouseX, mouseY, stopX, buttonY) < 25) {
+    sound.stop();
+    // jump(0)은 필요 없지만 안전하게 초기화
+    sound.jump(0);
   }
 }
